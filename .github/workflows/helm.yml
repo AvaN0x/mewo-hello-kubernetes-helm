@@ -1,0 +1,49 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+on:
+    repository_dispatch:
+        types: [helm]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+    # This workflow contains a single job called "build"
+    helm:
+        # The type of runner that the job will run on
+        runs-on: ubuntu-latest
+
+        env:
+            DOCKER_USER: avan0x
+            GIT_USER: avan0x
+            CONTAINER_REGISTRY: docker.io
+            CONTAINER_IMAGE: avan0x/mewo-hello-kubernetes
+            GIT_SSH_REPOSITORY: git@github.com:avan0x/mewo-hello-kubernetes.git
+            GIT_HTTPS_REPOSITORY: https://github.com/avan0x/mewo-hello-kubernetes-helm.git
+            CD_CHART_REPO: deploy/helm/hello-kubernetes
+            CD_MANIFEST_FILE: Chart.yaml
+
+        # Steps represent a sequence of tasks that will be executed as part of the job
+        steps:
+            - uses: actions/checkout@v3
+
+            # # Runs a set of commands using the runners shell
+            # - name: Connect to repo
+            #   run: |
+            #       sudo mkdir -p /root/.ssh
+            #       sudo ls /root/.ssh
+            #       git config --global user.name $GIT_USER
+            #       git config --global user.email $GIT_USER"@gmewo-campus.fr"
+            #       git clone --single-branch --branch main $GIT_HTTPS_REPOSITORY
+
+            #       docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.2.1 yq write --inplace --verbose $CD_MANIFEST_FILE appVersion $TAG
+            #       cat $CD_MANIFEST_FILE
+            #       git commit -am "update image tag" && git push origin master
+
+            - name: update manifest
+              run: docker run --rm -v "${PWD}":/workdir mikefarah/yq:3.2.1 --inplace --verbose deploy/helm/${{ github.event.client_payload.path}}/Chart.yaml appVersion ${{ github.event.client_payload.IMAGE_VERSION }}
+
+            - name: Commit Changes
+              uses: stefanzweifel/git-auto-commit-action@v4
+              with:
+                  commit_message: Update Manifest for ${{ github.event.client_payload.IMAGE}} to v${{ github.event.client_payload.IMAGE_VERSION }}
